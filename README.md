@@ -6,11 +6,11 @@ SaplingOS operates your personal knowledge base, executes tasks with minimal con
 
 ## What You Get
 
-- **Autonomous loop agents** - Spin up parallel Claude instances that work independently
-- **Queryable vault structure** - Schemas ensure files are grep-able and searchable
+- **Loop agents** - Spin up parallel Claude instances that work on independently, maintaining context over multihour tasks.
 - **Pre-built commands** - `/task`, `/today`, `/onboard`, `/commit`, and more
 - **Skills** - Reusable workflows for PRDs, email drafts, content ideation
 - **Decision tracing** - Captures meaningful choices to calibrate the system
+- **Queryable vault structure** - Schemas ensure files are grep-able and searchable
 
 ## Autonomous Loop Agents
 
