@@ -6,15 +6,67 @@ SaplingOS operates your personal knowledge base, executes tasks with minimal con
 
 ## What You Get
 
+- **Autonomous loop agents** - Spin up parallel Claude instances that work independently
 - **Queryable vault structure** - Schemas ensure files are grep-able and searchable
 - **Pre-built commands** - `/task`, `/today`, `/onboard`, `/commit`, and more
 - **Skills** - Reusable workflows for PRDs, email drafts, content ideation
 - **Decision tracing** - Captures meaningful choices to calibrate the system
 
+## Autonomous Loop Agents
+
+Claude can spawn separate, context-managed versions of itself that run autonomously in the background. These loop agents:
+
+- **Run independently** - Each agent operates in its own tmux session with fresh context
+- **Persist across sessions** - Agents continue working even if you close your terminal
+- **Can be monitored** - Peek at output, attach to watch live, or check status anytime
+- **Manage their own context** - No pollution of your main conversation's token budget
+
+### How It Works
+
+```bash
+# From any Claude Code session
+/loop
+
+# Claude will ask what you want to do:
+# - Start a new loop (specify task, iterations)
+# - Monitor a running loop
+# - Attach to watch live
+# - List all running loops
+# - Kill a loop
+```
+
+### Example: Parallel Development
+
+You're working on feature A in your main session. You realize feature B needs work too:
+
+```
+You: /loop
+Claude: What would you like to do? → Start
+You: "Implement the notification system - max 30 iterations"
+
+# Claude spins up a separate agent in tmux
+# You continue working on feature A
+# Later...
+
+You: /loop
+Claude: What would you like to do? → Monitor
+# See the notification system progress without context switching
+```
+
+### When to Use Loops
+
+- **Long-running tasks** - Migrations, refactors, test suites
+- **Parallel workstreams** - Multiple features simultaneously
+- **Background research** - Let an agent explore while you focus
+- **Overnight work** - Start a loop before bed, review in the morning
+
+The loop skill (`/loop`) manages the full lifecycle. Claude knows it has this capability and can suggest spinning up loops when appropriate.
+
 ## Requirements
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI)
 - [Beads](https://github.com/steveyegge/beads) - Issue tracking for agents
+- [tmux](https://github.com/tmux/tmux) - For autonomous loop agents
 - [Obsidian](https://obsidian.md) (optional but recommended for viewing)
 - Python 3.8+ with `pyyaml` (`pip install pyyaml`)
 
@@ -82,6 +134,7 @@ SaplingOS/
 
 | Command | Description |
 |---------|-------------|
+| `/loop` | Spin up, monitor, or manage autonomous loop agents |
 | `/onboard` | Initial setup - populate context, choose creature |
 | `/task <description>` | Start a task with planning and decision tracing |
 | `/today` | Create/open today's daily note |
@@ -117,6 +170,7 @@ Skills are reusable workflows in `.claude/skills/`:
 
 | Skill | Purpose |
 |-------|---------|
+| `run-loop` | Manage autonomous loop agents in tmux |
 | `onboard` | New user setup |
 | `today` | Daily note creation |
 | `decision-traces` | Extract decisions from completed work |
