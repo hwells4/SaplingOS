@@ -1,21 +1,21 @@
 # /loop Command
 
-Plan and launch autonomous loop agents through collaborative discussion.
+Plan, generate tasks, and launch autonomous loop agents.
 
 ## Usage
 
 ```
-/loop                    # Start planning a new loop
+/loop                    # Full flow: plan → tasks → launch
 /loop status             # Check running loops
 /loop attach NAME        # Attach to a session
 /loop kill NAME          # Stop a session
 ```
 
-## Planning Workflow
+## Full Planning Flow
 
 ### Phase 1: Understand Intent
 
-Start by asking what they want to accomplish. One open question:
+Ask what they want to accomplish:
 
 ```yaml
 question: "What do you want the loop to work on?"
@@ -28,124 +28,126 @@ options:
     description: "Refactor, optimize, or clean up"
   - label: "Batch operation"
     description: "Process multiple files, records, or items"
-  - label: "Let me explain"
-    description: "Describe the work in detail"
+  - label: "I have a PRD ready"
+    description: "Skip to task generation"
 ```
 
-### Phase 2: Explore and Estimate
+### Phase 2: Research with Subagents
 
-**This is the key phase.** Based on their answer:
+**Spawn subagents to gather context in parallel:**
 
-1. **Explore the codebase** to understand scope:
-   - Search for relevant files, patterns, existing implementations
-   - Understand the current architecture
-   - Identify what needs to change
+```
+Task(subagent_type="Explore", prompt="Find all files related to {topic}. Understand current architecture and patterns.")
 
-2. **Estimate complexity** based on findings:
-   - Count affected files/components
-   - Assess interconnections and dependencies
-   - Consider test coverage needed
-
-3. **Propose a plan** with your estimate:
-   ```
-   Based on exploring the codebase, here's what I found:
-
-   **Scope:** {what needs to change}
-   - {file/area 1}: {what changes}
-   - {file/area 2}: {what changes}
-   - ...
-
-   **My estimate:** {X} iterations ({reasoning})
-
-   **Approach:**
-   1. {first major step}
-   2. {second major step}
-   ...
-
-   Does this match what you had in mind? Should I adjust anything?
-   ```
-
-### Phase 3: Iterate Until Aligned
-
-Keep refining until the user confirms:
-- Adjust scope up/down based on feedback
-- Add/remove components
-- Clarify success criteria
-
-Ask:
-```yaml
-question: "Ready to launch, or want to adjust the plan?"
-header: "Confirm"
-multiSelect: false
-options:
-  - label: "Launch it"
-    description: "Plan looks good, start the loop"
-  - label: "Expand scope"
-    description: "Include more in this loop"
-  - label: "Reduce scope"
-    description: "Focus on less, do the rest later"
-  - label: "Let me clarify"
-    description: "I want to explain something"
+Task(subagent_type="Explore", prompt="Search for existing implementations of {similar feature}. Note patterns we should follow.")
 ```
 
-### Phase 4: Generate prompt.md
+This gives you real codebase knowledge to inform the plan.
 
-Create `scripts/loop/prompt.md`:
+### Phase 3: Generate PRD (if needed)
+
+If no PRD exists, invoke the generate-prd skill:
+
+```
+Skill(skill="generate-prd")
+```
+
+This asks adaptive questions until confident, then creates:
+```
+brain/outputs/{date}-{slug}-prd.md
+```
+
+### Phase 4: Generate Stories → prd.json
+
+Invoke generate-stories skill:
+
+```
+Skill(skill="generate-stories")
+```
+
+This:
+1. Reads the PRD
+2. Breaks into small, executable stories
+3. Generates acceptance criteria with test cases
+4. Creates `scripts/loop/prd.json`
+
+### Phase 5: Ensure prompt.md Exists
+
+If `scripts/loop/prompt.md` doesn't exist, create the standard template:
 
 ```markdown
 # Loop Agent Instructions
 
-## Objective
-{clear statement of what to accomplish}
-
-## Context
-{what you learned from exploring - key files, patterns, constraints}
-
-## Tasks
-{ordered list of specific things to do}
-1. {task 1}
-2. {task 2}
-...
+You are an autonomous agent executing tasks from prd.json.
 
 ## Per-Iteration Workflow
-1. Read progress.txt for context from previous iterations
-2. Pick the next incomplete task
-3. Implement it fully (code + tests if applicable)
-4. Commit with descriptive message
-5. Update progress.txt with what was done
-6. If all tasks complete: <promise>COMPLETE</promise>
 
-## Success Criteria
-{specific, verifiable conditions for "done"}
+1. **Read context:**
+   - `prd.json` - Find next story where `passes: false`
+   - `progress.txt` - Learn from previous iterations
+
+2. **Execute the story:**
+   - Implement the feature/fix
+   - Verify ALL acceptance criteria pass
+   - Run test commands (npm test, typecheck, etc.)
+
+3. **Commit:**
+   - Stage relevant changes only
+   - Write descriptive commit message referencing story ID
+   - Example: "US-003: Add email validation with test cases"
+
+4. **Update progress:**
+   - Append to progress.txt what you did and learned
+   - Note any blockers or patterns discovered
+
+5. **Mark complete:**
+   - Update prd.json: set `passes: true` for the story
+   - Add any notes about implementation
+
+6. **Check if done:**
+   - If ALL stories have `passes: true`: output `<promise>COMPLETE</promise>`
+   - Otherwise: end iteration (next iteration picks up next story)
 
 ## Constraints
-- One logical change per iteration
-- If stuck on same issue for 2 iterations, document and move on
-- {any project-specific constraints}
+
+- One story per iteration (fresh context each time)
+- If stuck on same story for 2 iterations, document blocker and skip
+- Always run verification commands before marking complete
+- Never mark a story complete if tests fail
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| prd.json | Stories with acceptance criteria |
+| progress.txt | Accumulated learnings |
+| prompt.md | These instructions (you're reading it) |
 ```
 
-### Phase 5: Launch
+### Phase 6: Launch in tmux
 
-1. Generate session name from goal: `loop-{slug}`
-2. Validate prerequisites exist
-3. Start tmux session via tmux-loop skill
-4. Update state file
-5. Show status:
+1. Generate session name: `loop-{feature-slug}`
+2. Start session:
+   ```bash
+   tmux new-session -d -s "loop-NAME" -c "$(pwd)" './scripts/loop/loop.sh'
+   ```
+3. Update `.claude/loop-sessions.json`
+4. Display:
 
 ```
 ╔════════════════════════════════════════════════════════════╗
-║  🚀 Loop Started: loop-{name}                              ║
+║  🚀 Loop Launched: loop-{name}                             ║
 ╠════════════════════════════════════════════════════════════╣
 ║                                                            ║
-║  Estimated: ~{N} iterations                                ║
-║  Running with: Opus                                        ║
+║  Stories: {N} tasks in prd.json                            ║
+║  Model: Opus                                               ║
 ║                                                            ║
 ║  Commands:                                                 ║
-║    /loop status              - Check all loops             ║
-║    /loop attach {name}       - Watch live (Ctrl+b d out)   ║
-║    /loop kill {name}         - Stop the loop               ║
+║    /loop status          - Check all loops                 ║
+║    /loop attach {name}   - Watch live (Ctrl+b d to exit)   ║
+║    /loop kill {name}     - Stop the loop                   ║
 ║                                                            ║
-║  Or directly:                                              ║
+║  Direct:                                                   ║
 ║    tmux capture-pane -t loop-{name} -p | tail -30          ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
@@ -154,14 +156,20 @@ Create `scripts/loop/prompt.md`:
 ## Subcommands
 
 ### /loop status
-Show all running loop sessions with age and status.
+```bash
+bash .claude/skills/tmux-loop/scripts/check-sessions.sh
+```
 
 ### /loop attach NAME
-Attach to watch live. Remind: `Ctrl+b` then `d` to detach.
+Attach to session. Remind: `Ctrl+b` then `d` to detach.
 
 ### /loop kill NAME
-Confirm, then terminate session and clean up state.
+Confirm completion status, then terminate.
 
-## Key Principle
+## Key Principles
 
-**Claude estimates, user confirms.** Don't ask the user how complex something is - explore the codebase and tell them what you found. They refine from there.
+1. **Subagents for research** - Always spawn Explore agents to understand codebase before planning
+2. **PRD is the source of truth** - Tasks come from a structured PRD, not ad-hoc
+3. **prd.json is executable** - Each story has verifiable acceptance criteria
+4. **prompt.md is standard** - Same instructions for every loop, tasks vary
+5. **Fresh context per iteration** - Loop restarts Claude each iteration to avoid degradation
