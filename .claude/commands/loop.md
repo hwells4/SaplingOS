@@ -1,13 +1,6 @@
 # /loop Command
 
-Plan and launch autonomous loop agents in tmux sessions.
-
-## What This Command Does
-
-1. **Plan** - Help you define what the loop should accomplish
-2. **Generate** - Create the prompt.md and task structure
-3. **Launch** - Start the loop in a tmux session
-4. **Monitor** - Show you how to check on progress
+Plan and launch autonomous loop agents through collaborative discussion.
 
 ## Usage
 
@@ -18,132 +11,157 @@ Plan and launch autonomous loop agents in tmux sessions.
 /loop kill NAME          # Stop a session
 ```
 
-## Workflow
+## Planning Workflow
 
-### Step 1: Understand the Goal
+### Phase 1: Understand Intent
 
-Ask the user:
+Start by asking what they want to accomplish. One open question:
+
 ```yaml
-question: "What do you want the loop to accomplish?"
+question: "What do you want the loop to work on?"
 header: "Goal"
 multiSelect: false
 options:
-  - label: "Build a feature"
-    description: "Implement something new with multiple steps"
-  - label: "Batch processing"
-    description: "Process many items (files, records, etc.)"
-  - label: "Refactoring"
-    description: "Improve existing code across multiple files"
-  - label: "Something else"
-    description: "Describe via Other"
+  - label: "Build something new"
+    description: "New feature, integration, or capability"
+  - label: "Improve existing code"
+    description: "Refactor, optimize, or clean up"
+  - label: "Batch operation"
+    description: "Process multiple files, records, or items"
+  - label: "Let me explain"
+    description: "Describe the work in detail"
 ```
 
-### Step 2: Scope the Work
+### Phase 2: Explore and Estimate
 
-Based on their goal, ask:
+**This is the key phase.** Based on their answer:
+
+1. **Explore the codebase** to understand scope:
+   - Search for relevant files, patterns, existing implementations
+   - Understand the current architecture
+   - Identify what needs to change
+
+2. **Estimate complexity** based on findings:
+   - Count affected files/components
+   - Assess interconnections and dependencies
+   - Consider test coverage needed
+
+3. **Propose a plan** with your estimate:
+   ```
+   Based on exploring the codebase, here's what I found:
+
+   **Scope:** {what needs to change}
+   - {file/area 1}: {what changes}
+   - {file/area 2}: {what changes}
+   - ...
+
+   **My estimate:** {X} iterations ({reasoning})
+
+   **Approach:**
+   1. {first major step}
+   2. {second major step}
+   ...
+
+   Does this match what you had in mind? Should I adjust anything?
+   ```
+
+### Phase 3: Iterate Until Aligned
+
+Keep refining until the user confirms:
+- Adjust scope up/down based on feedback
+- Add/remove components
+- Clarify success criteria
+
+Ask:
 ```yaml
-question: "How complex is this work?"
-header: "Scope"
+question: "Ready to launch, or want to adjust the plan?"
+header: "Confirm"
 multiSelect: false
 options:
-  - label: "Small (5-10 iterations)"
-    description: "Quick task, should finish in under an hour"
-  - label: "Medium (15-25 iterations)"
-    description: "Moderate work, 1-2 hours"
-  - label: "Large (30-50 iterations)"
-    description: "Substantial work, may take several hours"
-  - label: "Custom"
-    description: "Specify iteration count"
+  - label: "Launch it"
+    description: "Plan looks good, start the loop"
+  - label: "Expand scope"
+    description: "Include more in this loop"
+  - label: "Reduce scope"
+    description: "Focus on less, do the rest later"
+  - label: "Let me clarify"
+    description: "I want to explain something"
 ```
 
-### Step 3: Generate the Plan
+### Phase 4: Generate prompt.md
 
-Create `scripts/loop/prompt.md` with:
+Create `scripts/loop/prompt.md`:
 
 ```markdown
 # Loop Agent Instructions
 
 ## Objective
-{user's goal}
+{clear statement of what to accomplish}
 
-## Scope
-- Max iterations: {count}
-- Focus: {specific focus areas}
+## Context
+{what you learned from exploring - key files, patterns, constraints}
+
+## Tasks
+{ordered list of specific things to do}
+1. {task 1}
+2. {task 2}
+...
 
 ## Per-Iteration Workflow
-1. Check progress.txt for context from previous iterations
-2. Identify next task to complete
-3. Implement and verify
-4. Commit changes with descriptive message
-5. Update progress.txt with what was done and learnings
-6. If all work complete, output: <promise>COMPLETE</promise>
+1. Read progress.txt for context from previous iterations
+2. Pick the next incomplete task
+3. Implement it fully (code + tests if applicable)
+4. Commit with descriptive message
+5. Update progress.txt with what was done
+6. If all tasks complete: <promise>COMPLETE</promise>
 
 ## Success Criteria
-{what "done" looks like}
+{specific, verifiable conditions for "done"}
 
 ## Constraints
 - One logical change per iteration
-- Always run tests before committing
-- If stuck for 2+ iterations on same issue, document blocker and move on
+- If stuck on same issue for 2 iterations, document and move on
+- {any project-specific constraints}
 ```
 
-### Step 4: Create Session Name
+### Phase 5: Launch
 
-Generate a name from their goal:
-- `loop-{feature-slug}` (e.g., `loop-auth-system`, `loop-batch-migrate`)
+1. Generate session name from goal: `loop-{slug}`
+2. Validate prerequisites exist
+3. Start tmux session via tmux-loop skill
+4. Update state file
+5. Show status:
 
-### Step 5: Launch
-
-Use the tmux-loop skill to:
-1. Validate prerequisites (loop.sh, prompt.md exist)
-2. Start the tmux session
-3. Update state file
-4. Show monitoring instructions
-
-### Step 6: Handoff
-
-Display:
 ```
-╔══════════════════════════════════════════════════════════════╗
-║  🚀 Loop Started: loop-{name}                                ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
-║  The loop is now running autonomously in the background.     ║
-║                                                              ║
-║  Quick commands:                                             ║
-║    Peek:    tmux capture-pane -t loop-{name} -p | tail -30   ║
-║    Attach:  tmux attach -t loop-{name}                       ║
-║    Status:  /loop status                                     ║
-║    Stop:    /loop kill loop-{name}                           ║
-║                                                              ║
-║  The loop will signal <promise>COMPLETE</promise> when done. ║
-║  I'll warn you about stale sessions (>2 hours).              ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════╗
+║  🚀 Loop Started: loop-{name}                              ║
+╠════════════════════════════════════════════════════════════╣
+║                                                            ║
+║  Estimated: ~{N} iterations                                ║
+║  Running with: Opus                                        ║
+║                                                            ║
+║  Commands:                                                 ║
+║    /loop status              - Check all loops             ║
+║    /loop attach {name}       - Watch live (Ctrl+b d out)   ║
+║    /loop kill {name}         - Stop the loop               ║
+║                                                            ║
+║  Or directly:                                              ║
+║    tmux capture-pane -t loop-{name} -p | tail -30          ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
 ```
 
 ## Subcommands
 
 ### /loop status
-Run: `bash .claude/skills/tmux-loop/scripts/check-sessions.sh`
+Show all running loop sessions with age and status.
 
 ### /loop attach NAME
-Follow: `.claude/skills/tmux-loop/workflows/attach-session.md`
+Attach to watch live. Remind: `Ctrl+b` then `d` to detach.
 
 ### /loop kill NAME
-Follow: `.claude/skills/tmux-loop/workflows/kill-session.md`
+Confirm, then terminate session and clean up state.
 
-### /loop cleanup
-Follow: `.claude/skills/tmux-loop/workflows/cleanup-sessions.md`
+## Key Principle
 
-## Files Created/Modified
-
-- `scripts/loop/prompt.md` - Instructions for the loop agent
-- `.claude/loop-sessions.json` - Session tracking state
-- `scripts/loop/progress.txt` - Accumulates learnings (created by loop)
-
-## Integration
-
-This command uses:
-- `tmux-loop` skill for session management
-- `scripts/loop/loop.sh` for execution (runs with `--model opus`)
+**Claude estimates, user confirms.** Don't ask the user how complex something is - explore the codebase and tell them what you found. They refine from there.
