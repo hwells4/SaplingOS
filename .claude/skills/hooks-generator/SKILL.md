@@ -3,13 +3,41 @@ name: hooks-generator
 description: Quickly spin up Claude Code hooks for automation. Generates bash scripts, Python handlers, and settings.json configuration for PreToolUse, PostToolUse, SessionStart, Stop, and other hook events.
 invocation: user
 context_budget:
-  skill_md: 250
-  max_references: 3
+  skill_md: 200
+  max_references: 5
 ---
 
 <objective>
 Generate Claude Code hooks quickly with proper configuration, input handling, and output formatting. Analyzes existing hooks to prevent conflicts. Takes care of boilerplate so you focus on logic.
 </objective>
+
+<intake>
+What would you like to do?
+
+1. **Create a new hook** - Build a hook from scratch with analysis
+2. **Edit an existing hook** - Modify a hook in .claude/hooks/
+3. **Debug a hook** - Troubleshoot a broken or misbehaving hook
+4. **Analyze hooks** - Inventory existing hooks, find gaps
+5. **Something else** - Templates, settings, MCP tools, security, env vars
+
+Please specify your intent so I can load the right context.
+</intake>
+
+<routing>
+**Load references based on user intent:**
+
+| Intent | References to Load | Workflow |
+|--------|-------------------|----------|
+| Create new hook | hook-events.md, json-output.md, security.md, sub-agents.md | Spawn inventory agent → analyzer agent → create → tester agent |
+| Edit existing hook | hook-events.md, json-output.md, debugging.md | Read existing hook → modify → test |
+| Debug hook | debugging.md, hook-events.md | Diagnose → fix → test |
+| Analyze hooks | sub-agents.md | Spawn inventory agent |
+| MCP tools | mcp-tools.md, hook-events.md | Show patterns |
+| SessionStart/env vars | session-env-vars.md, hook-events.md | Show patterns |
+| Security review | security.md | Show checklist |
+| Templates | (load template file directly) | Show template |
+| Add to settings | workflows/add-to-settings.md | Configure |
+</routing>
 
 <essential_principles>
 1. **Analyze first** - Before creating, understand existing hooks to prevent conflicts
@@ -20,127 +48,68 @@ Generate Claude Code hooks quickly with proper configuration, input handling, an
 6. **Test before deploy** - Run hooks manually before adding to settings
 </essential_principles>
 
-<intake>
-**Commands:**
-1. `/hooks new <event> <name>` - Create a new hook (spawns analysis agents first)
-2. `/hooks analyze` - Inventory existing hooks and identify gaps
-3. `/hooks template <type>` - Show a template (validation, auto-approve, context-injection, stop-gate)
-4. `/hooks add-to-settings` - Add hook to settings.json
-5. `/hooks test <script>` - Test a hook with sample inputs
-6. `/hooks debug` - Troubleshooting guide for broken hooks
-
-**Event types:** PreToolUse, PostToolUse, PermissionRequest, UserPromptSubmit, Stop, SubagentStop, SessionStart, SessionEnd, PreCompact, Notification
-
-What would you like to do?
-</intake>
-
-<routing>
-| Command Pattern | Action |
-|-----------------|--------|
-| `new <event> <name>` | 1. Spawn hook_inventory_agent → 2. Spawn interaction_analyzer_agent → 3. workflows/create-hook.md → 4. Spawn hook_tester_agent |
-| `analyze` | Spawn hook_inventory_agent, report findings |
-| `template <type>` | Show template from templates/ |
-| `add-to-settings` | workflows/add-to-settings.md |
-| `test <script>` | Spawn hook_tester_agent |
-| `debug` | Load references/debugging.md |
-| `list` | Read .claude/settings.json and list hooks |
-</routing>
-
 <quick_reference>
 **Hook Events:**
 | Event | When | Matcher? | Can Block? |
 |-------|------|----------|------------|
-| PreToolUse | Before tool runs | Yes (tool name) | Yes |
-| PostToolUse | After tool succeeds | Yes (tool name) | Feedback only |
-| PermissionRequest | Permission dialog shown | Yes (tool name) | Yes |
+| PreToolUse | Before tool runs | Yes | Yes |
+| PostToolUse | After tool succeeds | Yes | Feedback only |
+| PermissionRequest | Permission dialog | Yes | Yes |
 | UserPromptSubmit | User sends prompt | No | Yes |
-| Stop | Claude finishes responding | No | Yes (continue) |
+| Stop | Claude finishes | No | Yes (continue) |
 | SubagentStop | Subagent finishes | No | Yes (continue) |
-| SessionStart | Session begins | Yes (startup/resume/clear/compact) | Context + env vars |
+| SessionStart | Session begins | Yes | Context + env vars |
 | SessionEnd | Session ends | No | Cleanup only |
-| PreCompact | Before context compaction | Yes (manual/auto) | No |
-| Notification | System notification | Yes (type) | No |
+| PreCompact | Before compaction | Yes | No |
+| Notification | System notification | Yes | No |
 
 **Common Matchers:**
 - `Write|Edit|MultiEdit` - File modifications
 - `Bash` - Shell commands
 - `Task` - Subagent creation
-- `Read|Glob|Grep` - File reading/search
 - `mcp__<server>__<tool>` - MCP tools (e.g., `mcp__github__.*`)
 - `*` or empty - All tools
 
-**MCP Tool Pattern:** `mcp__<server>__<tool>`
-- `mcp__memory__create_entities`
-- `mcp__github__search_repositories`
-- `mcp__gmail-autoauth__send_email`
+**Exit Codes:**
+- `exit 0` - Success (stdout in verbose mode, or context for SessionStart/UserPromptSubmit)
+- `exit 2` - Block action (stderr shown to Claude)
+- `exit 1` - Non-blocking error (logged only)
 </quick_reference>
 
-<output_patterns>
-**Exit Codes:**
-```bash
-exit 0    # Success (stdout shown in verbose mode)
-exit 2    # Block action (stderr shown to Claude)
-exit 1    # Non-blocking error (logged only)
-```
-
-**JSON Output (exit 0):**
-```json
-{
-  "decision": "block",
-  "reason": "Why Claude should stop/retry",
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow|deny|ask",
-    "permissionDecisionReason": "Shown to user"
-  }
-}
-```
-
-**PreToolUse Decisions:** `allow` (bypass permission), `deny` (block), `ask` (show dialog)
-**Stop/SubagentStop Decisions:** `block` (continue working) with required `reason`
-**SessionStart:** Can set env vars via `CLAUDE_ENV_FILE` (see references/session-env-vars.md)
-</output_patterns>
-
 <references_index>
+**Core (load for most tasks):**
 | Reference | Purpose |
 |-----------|---------|
-| references/hook-events.md | Full input/output schemas per event |
+| references/hook-events.md | Input/output schemas per event |
 | references/json-output.md | JSON response format details |
-| references/mcp-tools.md | Hooking MCP server tools (mcp__*) |
-| references/security.md | Input validation, path safety, command injection |
-| references/session-env-vars.md | Environment variable persistence (SessionStart) |
-| references/debugging.md | Troubleshooting, testing, healing broken hooks |
-| references/sub-agents.md | Agent definitions for hook analysis |
+
+**Task-specific:**
+| Reference | When to Load |
+|-----------|--------------|
+| references/security.md | Creating new hooks, security review |
+| references/debugging.md | Debugging, testing, healing hooks |
+| references/mcp-tools.md | Hooking MCP server tools |
+| references/session-env-vars.md | SessionStart hooks with env vars |
+| references/sub-agents.md | Creating hooks (analysis phase) |
 </references_index>
 
 <templates_index>
 | Template | Use Case |
 |----------|----------|
-| templates/bash-validator.sh | Validate tool inputs (e.g., block dangerous commands) |
-| templates/python-validator.py | Complex validation with JSON parsing |
+| templates/bash-validator.sh | Block dangerous shell commands |
+| templates/python-validator.py | Complex validation with JSON |
 | templates/auto-approve.py | Auto-approve safe operations |
-| templates/context-injection.py | Add context on SessionStart/UserPromptSubmit |
-| templates/stop-gate.py | Ensure work is complete before stopping |
-| templates/notification-forwarder.sh | Forward notifications to external systems |
+| templates/context-injection.py | SessionStart/UserPromptSubmit context |
+| templates/stop-gate.py | Ensure work completion before stop |
+| templates/notification-forwarder.sh | Forward notifications externally |
 </templates_index>
 
 <subagent_usage>
-**When creating hooks, spawn agents in this order:**
+**When creating hooks, spawn agents in order:**
 
-1. **hook_inventory_agent** (always first)
-   - Scans .claude/settings.json and .claude/hooks/
-   - Returns inventory of all existing hooks
-   - Identifies gaps in coverage
-
-2. **interaction_analyzer_agent** (before creating)
-   - Takes inventory + proposed hook details
-   - Identifies conflicts with existing hooks
-   - Recommends modifications to avoid issues
-
-3. **hook_tester_agent** (after creating)
-   - Generates test cases for the new hook
-   - Runs hook with test inputs
-   - Reports pass/fail with specific fixes
+1. **hook_inventory_agent** - Scans existing hooks, identifies gaps
+2. **interaction_analyzer_agent** - Identifies conflicts with proposed hook
+3. **hook_tester_agent** - Tests hook before deployment
 
 See `references/sub-agents.md` for full prompt templates.
 </subagent_usage>
