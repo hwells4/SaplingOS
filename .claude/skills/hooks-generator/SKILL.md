@@ -106,7 +106,8 @@ exit 1    # Non-blocking error (logged only)
 |-----------|---------|
 | references/hook-events.md | Full input/output schemas per event |
 | references/json-output.md | JSON response format details |
-| references/mcp-and-security.md | MCP tool hooks + security best practices |
+| references/mcp-tools.md | Hooking MCP server tools (mcp__*) |
+| references/security.md | Input validation, path safety, command injection |
 | references/session-env-vars.md | Environment variable persistence (SessionStart) |
 | references/debugging.md | Troubleshooting, testing, healing broken hooks |
 | references/sub-agents.md | Agent definitions for hook analysis |
