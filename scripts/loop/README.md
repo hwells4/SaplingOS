@@ -2,9 +2,25 @@
 
 Autonomous execution of multi-step plans with context management.
 
+## Before you start
+
+Generate your plan and tasks first:
+
+```bash
+# 1. Define what you're building
+/generate-prd
+
+# 2. Break it into executable tasks
+/generate-stories
+```
+
+This creates `prd.json` with tasks the loop can execute autonomously.
+
+> **Note:** Currently optimized for coding tasks (commits, tests, verification). Could be generalized for other work types.
+
 ## When to use
 
-- Extending Personal OS with new features
+- Extending Sapling OS with new features
 - Long-running batch processing (e.g., process 1000 documents)
 - Any multi-step work that benefits from fresh context per task
 - Plans too large to hold in a single conversation
@@ -12,14 +28,14 @@ Autonomous execution of multi-step plans with context management.
 ## How it works
 
 ```
-/generate-prd  →  prd.json      →  loop.sh  →  Autonomous execution
-/generate-stories  →  progress.txt accumulates learnings
+/generate-prd → /generate-stories → prd.json → loop.sh → Autonomous execution
 ```
 
-1. **Plan**: Use `/generate-prd` to define what you're building, then `/generate-stories` to break it into tasks
-2. **Configure**: Create `prompt.md` with instructions for how the agent should work
-3. **Run**: Execute `loop.sh` - each iteration picks a task, implements it, commits, repeats
-4. **Learn**: `progress.txt` accumulates patterns and learnings across iterations
+1. **Plan**: `/generate-prd` defines what you're building
+2. **Tasks**: `/generate-stories` breaks it into executable tasks with acceptance criteria
+3. **Configure**: Create `prompt.md` with instructions for how the agent should work
+4. **Run**: `loop.sh` picks a task, implements it, commits, repeats
+5. **Learn**: `progress.txt` accumulates patterns across iterations
 
 ## Files
 
