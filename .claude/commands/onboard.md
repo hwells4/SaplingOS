@@ -12,15 +12,16 @@ Interactive onboarding for new Sapling OS users. Collects context through an int
 
 ## What Happens
 
-### Phase 1: Welcome & Creature Selection
+### Phase 1: Welcome & Introduction
+- Get your name and give you a quick rundown
 - Choose your elemental companion (Fire/Water/Nature)
 - Creature starts as an egg, evolves as you use the system
 
-### Phase 2: Context Collection (All Skippable)
-- LinkedIn profile URL (scraped for background)
-- Company website (scraped for business context)
+### Phase 2: Understanding Your Work (All Skippable)
+- Business context (website or quick questions)
+- Your role (founder, engineer, designer, etc.)
+- Primary use case for Sapling OS
 - Writing samples (analyzed for voice/style)
-- Follow-up questions to fill gaps
 
 ### Phase 3: Image Generation Setup (Optional)
 - Set up nano-banana for generating PDFs, slide decks, carousel graphics

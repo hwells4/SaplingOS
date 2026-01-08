@@ -1,24 +1,50 @@
 # Fresh Start Onboarding Workflow
 
 <objective>
-Complete onboarding flow for new users. Collects context through sequential questions, stores creature selection, and populates context files.
+Complete onboarding flow for new users. Collects context through interactive questions, stores creature selection, and populates context files. Uses AskUserQuestion throughout for a smooth, clickable experience.
 </objective>
 
 <workflow>
-## Phase 1: Welcome & Creature Selection
+## Phase 1: Welcome & Introduction
 
-### Step 1: Welcome Message
-Display welcome and set expectations:
+### Step 1: Get Their Name
+Start by learning who they are. Use AskUserQuestion:
+
+```yaml
+question: "First things first—what should I call you?"
+header: "Your name"
+multiSelect: false
+options:
+  - label: "Use my system username"
+    description: "I'll call you by your computer's username"
+  - label: "Something else"
+    description: "Type your preferred name (click Other)"
+```
+
+**On selection:**
+- If "Use my system username": Extract from environment, store as `name`
+- If "Something else" or "Other": Use the provided text as `name`
+
+### Step 2: Welcome & Set Expectations
+Now that you have their name, give a warm welcome:
 
 ```
-Welcome to Personal OS!
+Hey {name}! Welcome to Sapling OS.
 
-This setup takes about 5 minutes. I'll ask a few questions to learn about you and your work. Every question is skippable except one: choosing your companion creature.
+This setup takes about 3-5 minutes. I'm going to ask you a few questions
+to tailor this system to your preferences and get you started on the right foot.
 
-Your creature starts as an egg and evolves as your OS learns. Ready?
+Here's what we'll cover:
+  1. Pick your companion creature (the fun part!)
+  2. Learn a bit about your work
+  3. Set up optional features
+  4. Generate your personal context files
+
+Everything except the creature is skippable—you can always add more later.
+Ready? Let's go!
 ```
 
-### Step 2: Creature Selection (Required)
+### Step 3: Creature Selection (Required)
 Use AskUserQuestion:
 
 ```yaml
@@ -39,118 +65,133 @@ options:
 2. Update `.claude/stats.yaml`:
    ```yaml
    creature: ember  # or drift/bloom
-   creature_selected_at: 2025-12-30
+   creature_selected_at: 2025-01-08
    ```
 3. Show creature egg art from `.claude/creatures/{name}/egg.txt`
-4. Continue to Phase 2
+4. Brief message: "Great choice! {Creature} will grow alongside you."
 
-## Phase 2: Data Collection
+## Phase 2: Understanding Your Work
 
-### Step 3: LinkedIn URL
+### Step 4: Business Context
 Use AskUserQuestion:
 
 ```yaml
-question: "What's your LinkedIn profile URL? This helps me understand your background and experience."
-header: "LinkedIn"
+question: "Do you run a business or have a company website I can learn from?"
+header: "Business"
 multiSelect: false
 options:
-  - label: "I'll provide it"
-    description: "Enter your LinkedIn URL (e.g., linkedin.com/in/yourname)"
-  - label: "Skip"
-    description: "I'll ask follow-up questions instead"
+  - label: "Yes, I have a website"
+    description: "I'll pull context from your site (enter URL via Other)"
+  - label: "Yes, but no website"
+    description: "I'll ask a few questions instead"
+  - label: "No, this is personal use"
+    description: "Skip business context"
 ```
 
-**If "I'll provide it":**
-1. Ask for URL in follow-up (free text via "Other")
-2. Validate URL contains `linkedin.com/in/`
-3. WebFetch the profile
-4. Extract: name, headline, summary, current company, top skills
-5. Store extracted data for about-me.md generation
-6. On failure: Offer retry/skip/manual entry
+**If "Yes, I have a website":**
+1. They should enter the URL via the "Other" option
+2. If they selected this but didn't enter a URL, prompt: "What's your website URL?"
+3. WebFetch the website (try /about page if exists)
+4. Extract: company name, description, industry indicators
+5. Store for business.md generation
+6. On failure: "Couldn't load that—no worries, I'll ask a couple questions instead."
 
-**If "Skip":** Mark `linkedin_skipped: true`, continue
-
-### Step 4: Company Website
-Use AskUserQuestion:
-
+**If "Yes, but no website":**
+Ask follow-up via AskUserQuestion:
 ```yaml
-question: "Do you have a company or business website?"
-header: "Company"
+question: "What does your business do? (One sentence is fine)"
+header: "Business"
 multiSelect: false
 options:
-  - label: "Yes, I'll provide it"
-    description: "Enter your company website URL"
-  - label: "Skip"
-    description: "I'll ask about your business instead"
+  - label: "Consulting/Services"
+    description: "I help clients with specific expertise"
+  - label: "Product/SaaS"
+    description: "I build and sell a product"
+  - label: "Agency/Creative"
+    description: "I do creative or marketing work"
+  - label: "Other"
+    description: "Describe via Other option"
 ```
+Store response for business.md.
 
-**If provided:**
-1. Ask for URL
-2. WebFetch the website (try /about page if exists)
-3. Extract: company name, description, industry indicators
-4. Store for business.md generation
-5. On failure: Offer retry/skip/manual
+**If "No, this is personal use":** Mark `business_skipped: true`, continue
 
-**If "Skip":** Mark `company_skipped: true`, continue
-
-### Step 5: Writing Samples
+### Step 5: Your Role
 Use AskUserQuestion:
 
 ```yaml
-question: "Do you have any writing samples I can analyze? (Blog posts, LinkedIn articles, etc.)"
+question: "What best describes your role?"
+header: "Role"
+multiSelect: false
+options:
+  - label: "Founder/CEO"
+    description: "I run the show"
+  - label: "Engineer/Developer"
+    description: "I build things"
+  - label: "Designer/Creative"
+    description: "I design and create"
+  - label: "Other"
+    description: "Something else (describe via Other)"
+```
+
+Store for about-me.md.
+
+### Step 6: Primary Use Case
+Use AskUserQuestion:
+
+```yaml
+question: "What are you most hoping Sapling OS helps you with?"
+header: "Use case"
+multiSelect: false
+options:
+  - label: "Task & project management"
+    description: "Stay organized, track work"
+  - label: "Writing & content"
+    description: "Blog posts, docs, communication"
+  - label: "Client work"
+    description: "Manage clients, calls, deliverables"
+  - label: "Personal productivity"
+    description: "Notes, ideas, life organization"
+```
+
+Store for preferences.md.
+
+### Step 7: Writing Samples (Optional)
+Use AskUserQuestion:
+
+```yaml
+question: "Got any writing samples I can analyze? Blog posts, articles, tweets—helps me learn your voice."
 header: "Writing"
 multiSelect: false
 options:
-  - label: "Yes, I have URLs"
-    description: "Provide 1-3 URLs to your writing"
-  - label: "Skip"
-    description: "My voice/style can be learned over time"
+  - label: "Yes, I have some URLs"
+    description: "Enter 1-3 URLs via Other"
+  - label: "Skip for now"
+    description: "My voice can be learned over time"
 ```
 
-**If provided:**
-1. Ask for URLs (comma-separated)
-2. WebFetch each URL
-3. Analyze: sentence length, formality, common phrases, structure
-4. Store for voice-and-style.md generation
-5. On failure: Note partial success, continue
+**If URLs provided:**
+1. WebFetch each URL (comma-separated)
+2. Analyze: sentence length, formality, common phrases
+3. Store for voice-and-style.md
+4. On failure: Note partial success, continue
 
 **If "Skip":** Mark `writing_skipped: true`, continue
 
-## Phase 3: Follow-up Questions
+## Phase 3: Optional Features
 
-Ask 5 questions to fill gaps. Skip questions where we already have data.
-
-### Question Selection Logic
-Load `references/follow-up-questions.md` for the question bank.
-
-**If LinkedIn skipped, ask:**
-- "What's your current role/title?"
-- "What's your professional background in 1-2 sentences?"
-
-**If company skipped, ask:**
-- "What does your business/company do?"
-- "Who are your ideal clients/customers?"
-
-**Always ask:**
-- "What are you hoping to use Personal OS for?"
-- "Any tools you use daily that I should know about? (CRM, calendar, etc.)"
-
-For each question, use AskUserQuestion with "Skip" as an option.
-
-## Phase 4: Image Generation Setup (Optional)
-
-### Step 6: Nano-Banana Setup
+### Step 8: Image Generation Setup
 Use AskUserQuestion:
 
 ```yaml
-question: "Would you like to set up image generation? This enables creating PDFs, slide decks, LinkedIn carousels, and professional graphics."
+question: "Want to set up image generation? Great for creating slide decks, LinkedIn carousels, and graphics."
 header: "Images"
 multiSelect: false
 options:
-  - label: "Yes, set it up"
-    description: "I'll walk you through getting a free Gemini API key (~2 min)"
+  - label: "Yes, set it up (~2 min)"
+    description: "I'll walk you through getting a free Gemini API key"
   - label: "Skip for now"
-    description: "I can set this up later"
+    description: "I can set this up anytime"
 ```
 
 **If "Yes, set it up":**
@@ -166,80 +207,70 @@ options:
    4. Copy the key (starts with "AIza...")
    ```
 
-2. Use AskUserQuestion to collect the key:
+2. Use AskUserQuestion:
    ```yaml
-   question: "Paste your Gemini API key here (it stays local in .env.local, never committed to git)"
+   question: "Paste your Gemini API key (stays local, never committed to git)"
    header: "API Key"
    multiSelect: false
    options:
-     - label: "I have my key ready"
-       description: "Enter via 'Other' option"
+     - label: "I have my key"
+       description: "Paste it via Other"
      - label: "Skip for now"
        description: "I'll set this up later"
    ```
 
-3. **On key provided** (via "Other" free text):
+3. **On key provided** (via "Other"):
    - Validate key format (should start with "AIza" and be ~39 chars)
-   - Create `.env.local` with:
+   - Create `.env.local`:
      ```
      # Gemini API key for image generation (nano-banana)
      # Get yours at: https://aistudio.google.com/apikey
      GEMINI_API_KEY=<their-key>
      ```
-   - Also create/update `.claude/skills/generate-visuals/.env`:
-     ```
-     GEMINI_API_KEY=<their-key>
-     ```
-   - Confirm: "Image generation is ready! Try `/generate-visuals` anytime."
+   - Create `.claude/skills/generate-visuals/.env` with same content
+   - Confirm: "Image generation is ready!"
 
-4. **On skip:** Mark `image_gen_skipped: true`, continue
+**If "Skip":** Mark `image_gen_skipped: true`, continue
 
-**If "Skip for now":** Mark `image_gen_skipped: true`, continue
+## Phase 4: Generate Context Files
 
-## Phase 5: Context File Generation
+### Step 9: Generate Files
+Create files in `brain/context/` using templates from `templates/`:
 
-### Step 7: Generate about-me.md
-Load template from `templates/about-me.md`
-Fill with:
-- LinkedIn data (if collected)
-- Follow-up answers (if provided)
+**about-me.md:**
+- Name from Step 1
+- Role from Step 5
+- Any extracted/provided background
 - TODOs for missing sections
 
-### Generate business.md
-Load template from `templates/business.md`
-Fill with:
-- Company website data (if collected)
-- Follow-up answers (if provided)
+**business.md:**
+- Company data from website (if fetched)
+- Business type from follow-ups
 - TODOs for missing sections
 
-### Generate voice-and-style.md
-Load template from `templates/voice-and-style.md`
-Fill with:
-- Writing sample analysis (if collected)
+**voice-and-style.md:**
+- Writing sample analysis (if provided)
 - Defaults + TODOs if skipped
 
-### Generate preferences.md
-Load template from `templates/preferences.md`
-Fill with:
-- Tool mentions from follow-ups
-- Defaults + TODOs
+**preferences.md:**
+- Primary use case from Step 6
+- Tool preferences (defaults)
+- TODOs for expansion
 
-## Phase 6: Explain & Complete
+## Phase 5: Explain & Complete
 
-### Step 8: Explain How It Works
-
-Before showing the welcome banner, explain the system:
+### Step 10: Explain How It Works
 
 ```
 How Sapling OS Works:
 
 1. **Your Context Files** (brain/context/)
-   These files help me understand you better. I'll reference them when helping
+   These files help me understand you. I reference them when helping
    with tasks, writing in your voice, or making recommendations.
 
 2. **Decision Tracing** (/task)
-   When you start work with /task, I track the meaningful decisions you make.
-   Not what you did, but *why* you chose one approach over another.
+   When you start work with /task, I track meaningful decisions—not
+   what you did, but *why* you chose one approach over another.
 
 3. **Calibration** (/calibrate)
    This is the magic. Run /calibrate periodically and I'll:
@@ -248,40 +279,36 @@ How Sapling OS Works:
    - Propose updates to my skills and behaviors
    - Tailor myself to work the way YOU work
 
-   Your creature evolves with each calibration. After 10 decision traces,
-   your egg hatches into your companion!
+   After 10 decision traces, your egg hatches!
 
 4. **Daily Notes** (/today)
-   Start each day with /today to capture tasks, notes, and context.
+   Start each day with /today to capture tasks and context.
    This becomes the memory that makes me more useful over time.
 
-The more you use the system, the better it gets at anticipating your needs.
+The more you use it, the better it gets.
 ```
 
-### Step 9: Show Welcome Banner
+### Step 11: Show Welcome Banner
 ```
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║   🎉 PERSONAL OS INITIALIZED                                  ║
+║   🎉 WELCOME TO SAPLING OS, {NAME}!                          ║
 ║                                                               ║
 ║   Your creature: {emoji} {CREATURE_NAME} (Egg)                ║
-║   Context files: {count}/4 populated                          ║
+║   Context files: {count}/4 created                            ║
 ║                                                               ║
-║   Complete a few tasks and run /calibrate to hatch your egg!  ║
-║                                                               ║
-║   Next step: /today to create your first daily note           ║
+║   Complete tasks with /task to hatch your egg!                ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-### Step 10: Commit with /commit
+### Step 12: Commit with /commit
 
 Use the `/commit` skill to save all onboarding files:
 
 **Files to stage:**
 - `brain/context/*.md` - Generated context files
 - `.claude/stats.yaml` - Creature selection and timestamps
-- `.claude/creatures/` - Creature artwork (if not already tracked)
 
 **Do NOT stage:**
 - `.env.local` - Contains API keys
@@ -290,11 +317,9 @@ Use the `/commit` skill to save all onboarding files:
 
 Invoke `/commit` - it will create an appropriate commit message.
 
-### Step 11: Clean Up
+### Step 13: Clean Up & Next Steps
 - Delete `.claude/onboard-state.json` if exists
 - Mark onboarding complete in stats.yaml: `onboarded_at: {date}`
-
-### Step 12: Suggest Next Steps
 
 ```
 Ready to get started? Here's what to do next:
@@ -312,14 +337,16 @@ Save state after each step to `.claude/onboard-state.json`:
 
 ```json
 {
-  "started_at": "2025-12-30T10:00:00Z",
+  "started_at": "2025-01-08T10:00:00Z",
+  "name": "Harrison",
   "creature": "ember",
-  "completed_steps": ["welcome", "creature", "linkedin", "company", "writing", "followup", "image_gen"],
+  "completed_steps": ["name", "welcome", "creature", "business", "role", "usecase", "writing", "image_gen"],
   "collected_data": {
-    "linkedin_url": "...",
-    "linkedin_extracted": {...},
-    "company_url": null,
-    "company_skipped": true,
+    "company_url": "https://example.com",
+    "company_extracted": {...},
+    "business_type": "consulting",
+    "role": "founder",
+    "use_case": "client_work",
     "writing_skipped": true,
     "image_gen_configured": true
   },
@@ -331,10 +358,6 @@ On resume, load state and skip to `current_step`.
 </state_persistence>
 
 <validation>
-**LinkedIn URL:**
-- Must contain `linkedin.com/in/` or `linkedin.com/company/`
-- Example shown: `https://linkedin.com/in/yourname`
-
 **Company URL:**
 - Must be valid URL format
 - Attempt to fetch /about page first
@@ -342,4 +365,8 @@ On resume, load state and skip to `current_step`.
 **Writing sample URLs:**
 - Must be valid URL format
 - Accept 1-3 URLs comma-separated
+
+**Gemini API Key:**
+- Should start with "AIza"
+- Length approximately 39 characters
 </validation>

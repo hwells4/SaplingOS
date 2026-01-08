@@ -28,15 +28,19 @@ Guide new users through Personal OS setup: collect identity/business/voice conte
 
 <quick_start>
 1. Check if context files exist → route appropriately
-2. Show welcome with time estimate (~5 min)
-3. Creature selection (required): Fire egg, Water egg, or Nature egg
-4. LinkedIn URL (skippable) → scrape → about-me.md
-5. Company website (skippable) → scrape → business.md
-6. Writing samples (skippable) → analyze → voice-and-style.md
-7. 5 follow-up questions (each skippable) → fill gaps
-8. Generate context files from collected data
-9. Show creature + welcome banner
-10. Suggest `/today` to start first daily note
+2. Get their name via AskUserQuestion
+3. Welcome with rundown of what's coming (~3-5 min)
+4. Creature selection (required): Fire egg, Water egg, or Nature egg
+5. Business context (skippable): website URL or quick questions
+6. Role selection (skippable): founder, engineer, designer, etc.
+7. Primary use case (skippable): what they want help with
+8. Writing samples (skippable) → analyze → voice-and-style.md
+9. Image generation setup (optional) → Gemini API key
+10. Generate context files from collected data
+11. Explain how /task, /calibrate, /today work
+12. Show creature + personalized welcome banner
+13. Commit with /commit
+14. Suggest `/today` to start first daily note
 </quick_start>
 
 <routing>
@@ -75,10 +79,10 @@ Files populated during onboarding:
 
 | File | Primary Source | Fallback |
 |------|---------------|----------|
-| brain/context/about-me.md | LinkedIn | Follow-up Qs |
-| brain/context/business.md | Company website | Follow-up Qs |
+| brain/context/about-me.md | Name + Role questions | Defaults |
+| brain/context/business.md | Company website | Business type Qs |
 | brain/context/voice-and-style.md | Writing samples | Template only |
-| brain/context/preferences.md | Follow-up Qs | Defaults |
+| brain/context/preferences.md | Use case selection | Defaults |
 
 Templates in: `.claude/skills/onboard/templates/`
 </context_files>
@@ -86,23 +90,27 @@ Templates in: `.claude/skills/onboard/templates/`
 <error_handling>
 | Error | Recovery |
 |-------|----------|
-| URL scrape fails | Offer: Retry / Skip / Enter manually |
+| Website scrape fails | "Couldn't load that—no worries, I'll ask a couple questions instead" |
 | Invalid URL | Show example, re-ask |
-| Session interrupted | Save to .claude/onboard-state.json |
+| Session interrupted | Save to .claude/onboard-state.json, resume on next /onboard |
 | All questions skipped | Create minimal files with TODOs |
+| API key invalid | Validate format, offer to re-enter or skip |
 </error_handling>
 
 <references_index>
 | Reference | Purpose |
 |-----------|---------|
-| references/extraction-targets.md | What to extract from URLs |
-| references/follow-up-questions.md | Dynamic question bank |
+| references/extraction-targets.md | What to extract from company websites |
 | references/creatures.md | Creature definitions + art paths |
+| workflows/fresh-start.md | Main onboarding workflow |
 </references_index>
 
 <success_criteria>
+- [ ] User's name collected
 - [ ] Creature selected and stored in .claude/stats.yaml
 - [ ] At least one context file populated (or all skipped with TODOs)
-- [ ] Welcome banner displayed with creature
+- [ ] System explanation delivered (/task, /calibrate, /today)
+- [ ] Welcome banner displayed with creature and name
+- [ ] Changes committed with /commit
 - [ ] User guided to next step (/today)
 </success_criteria>
